@@ -67,1061 +67,1228 @@ class SalesDivisionController extends Controller
     }
 
 }
+// index
 
-// zone
+@extends('layouts.app')
+@section('css')
 
-<?php
+@endsection
 
-namespace App\Http\Controllers\Web\Organization;
+@section('title', config('sfa.type'))
 
-use App\Http\Controllers\Controller;
-use App\Models\Organization\SalesDivision;
-use App\Models\Organization\Zone;
-use App\Models\User\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Yajra\DataTables\Facades\DataTables;
+@section('content')
+<div class="container-fluid dashboard-content ">
+    <!-- ============================================================== -->
+    <!-- pageheader  -->
+    <!-- ============================================================== -->
+    <div class="row">
+        <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+            <div class="page-header" style="text-align: center;">
+                <h2 class="pageheader-title">ADD SALES DIVISION</h2>
+                <div class="page-breadcrumb">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                           
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ============================================================== -->
+    <!-- end pageheader  -->
+    <!-- ============================================================== -->
+    <div class="ecommerce-widget">
+        <form action="{{url('sales_division/save')}}" method="post" name="sales_division_form" id="sales_division_form" onsubmit="sales_division_validation();"> 
+        @csrf
+        <div class="row">
+            <div class="col-md-3 col-sm-12 col-xs-12 form-group">
+            </div>
+            <div class="col-md-6 col-sm-12 col-xs-12 form-group text-center">
+                <table class="table table-striped table-bordered first">
+                    <thead class="thead-custom">
+                        <tr>
+                            <th style="text-align: center">&nbsp</th>
+                            <th style="text-align: center">SALES DIVISION CODE</th>
+                            <th style="text-align: center">SALES DIVISION NAME</th>
+                            <th style="text-align: center">&nbsp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sales_division">
+                        <tr id="tr_1">
+                            <td style="text-align: center">
+                                <span class="color-success" style="cursor: pointer; font-size:18px" onclick="gen_item();">
+                                    <i class="bi bi-plus-square-fill"></i>
+                                </span>
+                            </td>
+                            <td>
+                            <input type="text" id="sales_division_code_1" name="sales_division_code_1" class="col-md-12 form-control form-control-sm" autocomplete="off" />
+                            </td>
+                            <td>
+                            <input type="text" id="sales_division_name_1" name="sales_division_name_1" class="col-md-12 form-control form-control-sm" autocomplete="off" />
+                            </td>
+                            <td style="text-align: center">
+                                <span class="color-danger" style="cursor: pointer; font-size:18px" onclick="remove_item('1');">
+                                    <i class="bi bi-x-square-fill"></i>
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <input type="hidden" id="item_count" name="item_count" value="1" />
+                    <input type="hidden" id="delete_item_count" name="delete_item_count" value="1" />
+                </table>
+                <div class="form-group mt-sm-1 mb-sm-1">
+                    <div class="">
+                        <button class="btn btn-secondary btn-sm" type="button" onclick="reset_page()">CLEAR</button>
+                        <button type="button" id="add" class="btn btn-primary btn-sm" onclick="form_submit('add', 'sales_division_form')">SAVE</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-12 col-xs-12 form-group">
+            </div>
+        </div>
+        </form>
+    </div>
+</div>
+@endsection
 
-class ZoneController extends Controller
-{
-    
-    public function index() {
-        $sales_division = SalesDivision::get();
-        return view('contents.organization.zone.index', compact('sales_division'));
+@section('js')
+<script type="text/javascript">
+    /* GENERATE NEW ROW */
+    function gen_item(){
+        var num = parseFloat($('#item_count').val()) + 1;
+        $('#item_count').val(num);
+        var delete_count = parseFloat($('#delete_item_count').val()) + 1;
+        $('#delete_item_count').val(delete_count);
+        $('#sales_division').append('<tr class="even pointer" id="tr_' + num + '">'
+                + '<td style="text-align: center">'
+                    + '<span class="color-success" style="cursor: pointer; font-size:18px" onclick="gen_item();">'
+                    +     '<i class="bi bi-plus-square-fill"></i>'
+                    + '</span>'
+                + '</td>'
+                + '<td>'
+                    +'<input type="text" id="sales_division_code_' + num + '" name="sales_division_code_' + num + '" class="col-md-12 form-control form-control-sm" autocomplete="off" />'
+                + '</td>'
+                + '<td>'
+                    +'<input type="text" id="sales_division_name_' + num + '" name="sales_division_name_' + num + '" class="col-md-12 form-control form-control-sm" autocomplete="off" />'
+                + '</td>'
+                + '<td style="text-align: center">'
+                    + '<span class="color-danger" style="cursor: pointer; font-size:18px" onclick="remove_item('+ num +');">'
+                    +    '<i class="bi bi-x-square-fill"></i>'
+                    + '</span>'
+                + '</td>'
+                + '</tr>');
+        $('#sales_division_code_'+num).focus();
     }
 
-    public function get_sales_division(Request $request) {
-        $sales_division = SalesDivision::select(['sd_id', 'sd_name'])->get();
-        return $sales_division;
-    }
-
-    public function save(Request $request) {
-        DB::beginTransaction();
-        try {
-
-            for ($i = 1; $i <= $request->item_count; $i++) {
-                if (isset($request['zone_code_' . $i])) {
-                    $zone = Zone::create([
-                        'sd_id' => $request['sales_division_' . $i],
-                        'z_code' => $request['zone_code_' . $i],
-                        'z_name' => $request['zone_name_' . $i]
-                    ]);
-                }
-            }
-            DB::commit();
-            return redirect()->route('zone_registration')->with('success', 'RECORD HAS BEEN SUCCESSFULLY INSERTED!');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->route('zone_registration')->with('error', 'RECORD HAS NOT BEEN SUCCESSFULLY INSERTED!');
+    /*REMOVE GENERATED ROW*/
+    function remove_item(num) {
+        $('#tr_' + num).remove();
+        var num = parseFloat($('#delete_item_count').val()) - 1;
+        $('#delete_item_count').val(num);
+        if (num == 0) {
+            gen_item();
         }
     }
 
-    public function view() {
-        $sales_division = SalesDivision::get();
-        return view('contents.organization.zone.view', compact('sales_division'));
-    }
-
-    public function search(Request $request) {
-        if (isset(Auth::user()->u_tp_id)) {
-        }
-        $zone = DB::table('zones AS z')
-            ->leftJoin('sales_divisions AS sd', 'sd.sd_id', 'z.sd_id')
-            ->select([
-                'sd.sd_name AS sd_name',
-                'z.z_code as z_code',
-                'z.z_name as z_name',
-                DB::raw("DATE_FORMAT(z.created_at,'%Y-%m-%d') AS added_date"),
-                DB::raw("DATE_FORMAT(z.created_at,'%H:%i:%s') AS added_time"),
-                'z.z_id',
-                'z.deleted_at'
-            ])
-            ->groupBy('z.z_id');
-        return DataTables::of($zone)
-            ->addColumn('edit', function ($zone) {
-                if ($zone->deleted_at == NULL || $zone->deleted_at == "") {
-                    $checkUserPermitedUrledit = User::checkUserPermitedUrl('ZONE EDIT');
-                    if ($checkUserPermitedUrledit) {
-                        return '<div style="text-align:center">
-                        <a href="' . url('zone/edit', $zone->z_id) . '" target="_blank"><i style="color:#0998b0;font-size:18px" class="fas fa-pencil-alt fa-lg"></i></a>
-                    </div>';
-                    } else {
-                        return '<div style="text-align:center">
-                <a href="javascript:void(0);" ><i style="color:gray;font-size:18px" class="fas fa-pencil-alt fa-lg"></i></a>
-            </div>';
+    function reset_page(){
+        $.confirm({
+        title: 'Confirm?',
+            content: 'Are you sure do you want to reset ?',
+            type: 'green',
+            buttons: {
+                Okey: {
+                    text: 'Yes',
+                    btnClass: 'btn-blue',
+                    action: function () {
+                        location.reload();
                     }
-                }
-            })
-            ->addColumn('status', function ($zone) {
-                $checkUserPermitedUrldelete = User::checkUserPermitedUrl('ZONE DELETE');
-                if ($zone->deleted_at == NULL || $zone->deleted_at == "") {
-                    $current_status = 1;
-
-                    if ($checkUserPermitedUrldelete) {
-                        return '<div style="text-align:center"><a href="" onclick="change_status(' . $current_status . ',' . $zone->z_id . ')" class="btn btn-success btn-sm">Enable</a></div>';
-                    } else {
-                        return '<div style="text-align:center"><button disabled="disabled"  class="btn btn-success btn-sm">Enable</a></div>';
-                    }
-                } else {
-                    $current_status = 0;
-                    if ($checkUserPermitedUrldelete) {
-                        return '<div style="text-align:center"><a href="" onclick="change_status(' . $current_status . ',' . $zone->z_id . ')" class="btn btn-danger btn-sm">Disable</a></div>';
-                    } else {
-                        return '<div style="text-align:center"><button disabled="disabled"  class="btn btn-danger btn-sm">Disable</a></div>';
-                    }
-                }
-            })
-            ->rawColumns(['edit', 'status'])
-            ->filter(function ($query) use ($request) {
-                if ($request->has('sales_division') && $request->get('sales_division') != "") {
-                    $query->where('z.sd_id', '=', "{$request->get('sales_division')}");
-                }
-                if ($request->has('search') && !is_null($request->get('search')['value'])) {
-                    $regex = $request->get('search')['value'];
-                    return $query->where(function ($queryNew) use ($regex) {
-                        $queryNew->where('z.z_code', 'like', '%' . $regex . '%')
-                            ->orWhere('z.z_name', 'like', '%' . $regex . '%')
-                            ->orWhere('sd.sd_name', 'like', '%' . $regex . '%')
-                            ->orWhere('z.created_at', 'like', '%' . $regex . '%');
-                    });
-                }
-            })
-            ->make(true);
-    }
-
-    public function edit(Request $request) {
-        $zone = Zone::find($request->id);
-        $sales_division = SalesDivision::get();
-        return view('contents.organization.zone.edit', compact('zone', 'sales_division'));
-    }
-
-    public function update(Request $request, $id) {
-        $zone = Zone::find($id);
-        $zone->sd_id = $request->get('sales_division_1');
-        $zone->z_code = $request->get('zone_code_1');
-        $zone->z_name = $request->get('zone_name_1');
-        $zone->save();
-        if ($zone) {
-            return redirect()->route('zone_view')->with('success', 'RECORD HAS BEEN SUCCESSFULLY UPDATED!');
-        } else {
-            return redirect()->route('zone_view')->with('error', 'RECORD HAS NOT BEEN SUCCESSFULLY UPDATED!');
-        }
-    }
-
-    public function change_status(Request $request) {
-        if ($request->status == 0) {
-            Zone::withTrashed()->find($request->id)->restore();
-            session()->flash('success', 'RECORD HAS BEEN SUCCESSFULLY RESTORED!');
-        } elseif ($request->status == 1) {
-            Zone::find($request->id)->delete();
-            session()->flash('success', 'RECORD HAS BEEN SUCCESSFULLY DELETED!');
-        }
-    }
-}
-// area
-
-<?php
-
-namespace App\Http\Controllers\Web\Organization;
-
-use App\Http\Controllers\Controller;
-use App\Models\Organization\Area;
-use App\Models\Organization\AreaTransferDetail;
-use App\Models\Organization\Region;
-use App\Models\Organization\Zone;
-use App\Traits\UserArea;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Yajra\DataTables\Facades\DataTables;
-
-class AreaController extends Controller
-{
-
-    use UserArea;
-    
-    public function index(){
-
-        //generate territory number 
-        $area_last_row = Area::orderBy('ar_id', 'desc')->first();
-        if(empty($area_last_row->ar_id)){
-            $area_code = '0';
-        }else {
-            $area_code = $area_last_row->ar_id;
-        }
-        $area_code_ = 'TE'.str_pad($area_code, 3, 0);
-
-        $zone = Zone::get();
-        $region = Region::get();
-        return view('contents.organization.area.index', compact('zone','region', 'area_code_'));
-
-    }
-
-    public function get_zone(Request $request){
-        $zone = Zone::select(['z_id','z_name'])->get();
-        return $zone;
-    }
-    
-    public function get_region(Request $request){
-        $region = Region::select(['rg_id','rg_name'])->get();
-        return $region;
-    }
-
-    public function save(Request $request){
-
-        DB::beginTransaction();
-        try {
-
-            for ($i = 1; $i <= $request->item_count; $i++) {
-
-                $area_code = "";
-    
-                //generate territory number 
-                $area_last_row = Area::orderBy('ar_id', 'desc')->first();
-                if(empty($area_last_row->ar_id)){
-                    $area_code = '0';
-                }else {
-                    $area_code = $area_last_row->ar_id;
-                }
-                $area_code_ = 'TE'.str_pad($area_code, 3, 0);
-    
-                if(isset($request['area_name_' . $i])){
-                    $area = Area::create([
-                        'rg_id'=>$request['region_' . $i],
-                        'z_id'=>$request['zone_' . $i],
-                        'ar_code'=>$area_code_,
-                        'ar_name'=>$request['area_name_' . $i]
-                    ]);
-    
-                    // initial transfer titals
-                    AreaTransferDetail::create([
-                        'ar_id'=>$area->ar_id,
-                        'rg_id'=>$request['region_' . $i],
-                        'z_id'=> Region::getZoneId($request['region_' . $i]),
-                        'transfer_time'=> 0,
-                        'date_from'=> now(),
-                        'date_to'=> config('sfa.enddate'),
-                        'added_by'=> Auth::user()->u_id,
-                    ]);
-                }
-            }
-            DB::commit();
-            return redirect()->route('area_registration')->with('success', 'RECORD HAS BEEN SUCCESSFULLY INSERTED!');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->route('area_registration')->with('error', 'RECORD HAS NOT BEEN SUCCESSFULLY INSERTED!');
-        }
-    }
-
-    public function view(){
-        $area = Area::withTrashed()->get();
-        $zone = Zone::get();
-        $region = Region::get();
-        return view('contents.organization.area.view',compact('area', 'zone', 'region'));
-    }
-
-    public function search(Request $request) {
-
-        $areas   = DB::table('areas as ar')
-                ->join('regions as rg', 'rg.rg_id', 'ar.rg_id')
-                ->select([
-                    'ar.ar_id',
-                    'ar.ar_code',
-                    'ar.ar_name',
-                    'rg.rg_name',
-                    'rg.created_at',
-                    'ar.deleted_at',
-                ])
-                ->orderBy('ar.ar_code');
-
-                return DataTables::of($areas)
-                ->addColumn('edit', function ($areas) {
-                    return '<div style="text-align:center">
-                                <a href="' . url('user/edit', $areas->ar_id) . '" target="_blank"><i style="color:#0998b0;font-size:18px" class="fas fa-pencil-alt fa-lg"></i></a>
-                            </div>';
-                })
-                ->addColumn('status', function ($areas) {
-                    if ($areas->deleted_at == NULL) {
-                        $current_status = 1;
-                        return '<div style="text-align:center"><a href="" onclick="change_status(' . $current_status . ',' . $areas->ar_id . ')" class="btn btn-success btn-sm">Enable</a></div>';
-                    } else {
-                        $current_status = 0;
-                        return '<div style="text-align:center"><a href="" onclick="change_status(' . $current_status . ',' . $areas->ar_id . ')" class="btn btn-danger btn-sm">Disable</a></div>';
-                    }
-                })
-                ->rawColumns(['edit', 'status'])
-                ->filter(function ($query) use ($request) {
-
-                    if ($request->has('z_id') && $request->get('z_id') != "") {
-                        $query->where('rg.z_id', '=', "{$request->get('z_id')}");
-                    }
-                    if ($request->has('rg_id') && $request->get('rg_id') != "") {
-                        $query->where('rg.rg_id', '=', "{$request->get('rg_id')}");
-                    }
-
-                    if ($request->has('search') && !is_null($request->get('search')['value'])) {
-                        $regex = $request->get('search')['value'];
-                        return $query->where(function ($queryNew) use ($regex) {
-                            $queryNew->where('ar.ar_code', 'like', '%' . $regex . '%')
-                                ->orWhere('ar.ar_name', 'like', '%' . $regex . '%')
-                                ->orWhere('rg.rg_name', 'like', '%' . $regex . '%')
-                                ->orWhere('rg.created_at', 'like', '%' . $regex . '%');
-                        });
-                    }
-                })
-                ->make(true);
-    }
-
-    public function edit(Request $request){
-        $area = Area::find($request->id);
-        $region = Region::get();
-        return view('contents.organization.area.edit',compact('region','area'));
-    }
-
-    public function update(Request $request,$id){
-
-        DB::beginTransaction();
-        try {
-            $area = Area::find($id);
-            // $area->rg_id = $request->get('region_1'); // region change option disabled in view
-            $area->ar_code = $request->get('area_code_1');
-            $area->ar_name = $request->get('area_name_1');
-            $area->save();
-            DB::commit();
-            return redirect()->route('area_view')->with('success', 'RECORD HAS BEEN SUCCESSFULLY UPDATED!');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->route('area_view')->with('error', 'RECORD HAS NOT BEEN SUCCESSFULLY UPDATED!');
-        }
-    }
-
-    public function change_status(Request $request){
-        if($request->status == 0){
-            Area::withTrashed()->find($request->id)->restore();
-            session()->flash('success', 'RECORD HAS BEEN SUCCESSFULLY RESTORED!');
-        } elseif($request->status == 1){
-            Area::find($request->id)->delete();
-            session()->flash('success', 'RECORD HAS BEEN SUCCESSFULLY DELETED!');
-        }
-    }
-
-    public function transfer() {
-        $user = Auth::user();
-        $allocatedUserArea = $this->getAllocatedAreaByUser($user);
-        $zone = Zone::query();
-        $region = Region::query();
-        $area = Area::query();
-
-        if($user->u_tp_id == config('sfa.asm')){
-            $zone = $zone->whereIn('z_id',$allocatedUserArea->unique('z_id')->pluck('z_id')->all());
-            $region = $region->whereIn('rg_id',$allocatedUserArea->unique('rg_id')->pluck('rg_id')->all());
-            $area = $area->whereIn('ar_id',$allocatedUserArea->unique('ar_id')->pluck('ar_id')->all());
-        }
-
-        $zone = $zone->get();
-        $region = $region->get();
-        $area = $area->get();
-        return view('contents.organization.area.transfer', [ 'zone' => $zone, 'region' => $region, 'area' => $area, ]);
-    }
-
-    public function transfer_search(Request $request) {
-        $areas = DB::table('areas AS ar')
-                    ->join('regions As rg', 'rg.rg_id', 'ar.rg_id')
-                    ->whereNull('ar.deleted_at')
-                    ->whereNull('rg.deleted_at')
-                    ->orderBy('ar.created_at')
-                    ->select([                
-                        'ar.ar_id',
-                        'ar.ar_code',
-                        'ar.ar_name',
-                        'ar.rg_id',
-                        'rg.z_id',
-                        DB::raw("DATE_FORMAT(ar.created_at,'%Y-%m-%d') AS added_date"),
-                    ]);
-        return DataTables::of($areas)
-            ->addColumn('checkbox', function ($areas) {
-                $btn = '<input type="checkbox" id="checkbox_'.$areas->ar_id.'" name="areas[]" value="'.$areas->ar_id.'" data-id="'.$areas->ar_id.'" class="single-checkbox" onclick="select_single_checkbox(event)"/>';
-                return '<div style="text-align:center">'
-                            .$btn.
-                        '</div>';
-            })
-            ->rawColumns(['checkbox'])
-            ->filter(function ($query) use ($request) {
-                if ($request->has('z_id') && $request->get('z_id')  != '') {
-                    $query->where('rg.z_id',  $request->get('z_id'));
-                }
-                if ($request->has('rg_id') && $request->get('rg_id')  != '') {
-                    $query->where('ar.rg_id', '=', $request->get('rg_id'));
-                }
-                if ($request->has('ar_id') && $request->get('ar_id')  != '') {
-                    $query->where('ar.ar_id', '=', $request->get('ar_id'));
-                }
-            })
-            ->make(true);
-    }
-
-    public function transfer_save(Request $request) {
-        // dd($request->all());
-        DB::beginTransaction();
-        try {
-
-            foreach ($request->areas as $area) {
-                $area_db = Area::where('ar_id', $area)->where('rg_id', $request->old_rg_id)->first();
-                if (isset($area_db)) {
-                    // update area
-                    $area_db->update([
-                        'rg_id' => $request->new_rg_id
-                    ]);
+                },
+                cancel: {
+                    text: 'No',
+                    btnClass: 'btn-red',
+                    action: function () {
                     
-                    // get letest transfer details
-                    $transfer_details = AreaTransferDetail::where('ar_id', $area)->latest()->first();
-
-                    if (isset($transfer_details)) {
-
-                        // set end date of current transfer
-                        $transfer_details->update([
-                            'date_to' => now()
-                        ]);
-
-                        // create new transfer details
-                        AreaTransferDetail::create([
-                            'ar_id'=> $area,
-                            'rg_id'=> $request->old_rg_id,
-                            'z_id'=> $request->old_z_id,
-                            'transfer_time'=> $transfer_details->transfer_time+1,
-                            'new_rg_id'=> $request->new_rg_id,
-                            'new_z_id'=> $request->new_z_id,
-                            'date_from'=> now(),
-                            'date_to'=> config('sfa.enddate'),
-                            'added_by'=> Auth::user()->u_id,
-                        ]);
-                    } else {
-                        // create new transfer details, when initial transfer details are not available
-                        AreaTransferDetail::create([
-                            'ar_id'=> $area,
-                            'rg_id'=> $request->old_rg_id,
-                            'z_id'=> $request->old_z_id,
-                            'transfer_time'=> 1,
-                            'new_rg_id'=> $request->new_rg_id,
-                            'new_z_id'=> $request->new_z_id,
-                            'date_from'=> now(),
-                            'date_to'=> config('sfa.enddate'),
-                            'added_by'=> Auth::user()->u_id,
-                        ]);
                     }
                 }
             }
-
-            DB::commit();
-            return redirect()->route('area_transfer')->with('success', 'Territoty/s Transfer Success.');
-        } catch (\Exception $e) {
-            DB::rollback();
-            // dd($e);
-            return redirect()->route('area_transfer')->with('error', 'Territoty/s Transfer Failed.');
-        }
+        });
     }
 
-}
-// outlet
-
-<?php
-
-namespace App\Http\Controllers\Web\Organization;
-
-use App\Exports\Organization\CustomerExportExcel;
-use App\Http\Controllers\Controller;
-use App\Models\Organization\Area;
-use App\Models\Organization\Customer;
-use App\Models\Organization\CustomerCategory;
-use App\Models\Organization\CustomerClass;
-use App\Models\Organization\CustomerTransferDetail;
-use App\Models\Organization\Region;
-use App\Models\Organization\Route;
-use App\Models\Organization\Zone;
-use App\Traits\UserArea;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
-use Maatwebsite\Excel\Facades\Excel;
-use Yajra\DataTables\Facades\DataTables;
-
-class CustomerController extends Controller
-{
-    
-    use UserArea;
-
-    public function index() {
-        $customer_category = CustomerCategory::get();
-        $customer_classification = CustomerClass::get();
-        $route = Route::get();
-        $zone = Zone::get();
-        $region = Region::get();
-        $area = Area::get();
-        $cus_code = Customer::genCustomerCode();
-        return view('contents.organization.customer.customer.index', compact('customer_category', 'customer_classification', 'route', 'cus_code', 'zone', 'region', 'area' ));
-    }
-
-    public function save(Request $request) {
-        // dd($request->all());
-        DB::beginTransaction();
-
-        $validator = Validator::make($request->all(), [
-            'outlet_image' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'customer_code' => 'required|string|max:255|unique:customers,cus_code',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->route('customer')->with('error', $validator->errors()->first())->withErrors($validator)->withInput();
-        }
-        else {
-
-            try {
-
-                if ($request->has('outlet_image')) {
-                    $image = File::get($request->outlet_image);
-                    $image_name = time().'.'.$request->outlet_image->extension();
-                    Storage::put('/public/customer_img/'.date("Y").'/'.date("m").'/'.date("d").'/'.$image_name,$image);
-
-                    $img_url = '/storage/customer_img/'.date("Y").'/'.date("m").'/'.date("d").'/'.$image_name;
-                }
-                else {
-                    $img_url = null;
-                }
-
-                $customer = new Customer;
-                $customer->cus_code = Customer::genCustomerCode();
-                $customer->cus_name = $request->customer_name;
-                $customer->cus_cat_id = $request->cus_cat_id;
-                $customer->cus_class_id = $request->cus_class_id;
-                $customer->r_id = $request->r_id;
-                $customer->z_id = $request->z_id;
-                $customer->rg_id = $request->rg_id;
-                $customer->ar_id = $request->ar_id;
-                $customer->cus_address = $request->cus_address;
-                $customer->cus_phone = $request->cus_telephone;
-                $customer->cus_mobile = $request->cus_mobile;
-                $customer->cus_email = $request->cus_email;
-                $customer->owner_name = $request->owner;
-                $customer->owner_dob = $request->owner_dob;
-                $customer->contact_person = $request->contact_person;
-                $customer->contact_person_telephone = $request->contact_person_tp;
-                $customer->cus_latitude = $request->cus_latitude;
-                $customer->cus_longitude = $request->cus_longitude;
-                $customer->image_url = $img_url;
-                $customer->credit_limit = $request->credit_limit;
-                $customer->dealer_board = $request->dealer_board_status;
-                $customer->vat_availability = $request->vat_availability_status;            
-                if ($request->vat_availability_status == '1') {
-                    $customer->vat_no = $request->vat_no;
-                }
-                else {
-                    $customer->vat_no = null;
-                }            
-                $customer->added_by = Auth::user()->u_id;
-                $customer->cus_created_time = now();
-                $customer->save();
-
-                // initial transfer titals
-                $r_id = $request->r_id;
-                $ar_id = Route::getAreaId($r_id);
-                $rg_id = Area::getRegionId($ar_id);
-                $z_id = Region::getZoneId($rg_id);
-
-                $cus_td = new CustomerTransferDetail;
-                $cus_td->cus_id = $customer->cus_id;
-                $cus_td->r_id = $r_id;
-                $cus_td->ar_id = $ar_id;
-                $cus_td->rg_id = $rg_id;
-                $cus_td->z_id = $z_id;
-                $cus_td->transfer_time = 0;
-                $cus_td->date_from = now();
-                $cus_td->date_to = config('sfa.enddate');
-                $cus_td->added_by = Auth::user()->u_id;
-                $cus_td->save();
-
-                DB::commit();
-                return redirect()->route('customer_view')->with('success', 'RECORD HAS BEEN SUCCESSFULLY INSERTED!');
-            } catch (\Exception $e) {
-                DB::rollback();
-                // dd($e);
-                return redirect()->route('customer')->with('error', 'RECORD HAS NOT BEEN SUCCESSFULLY INSERTED!');
+    function sales_division_validation(){
+        valid = true;
+        for (m = 1; m <= parseInt($('#item_count').val()); m++) {
+            if ($('#sales_division_code_' + m).val() == "") {
+                valid = false;
+                $('#sales_division_code_' + m).focus();
+                $.alert({
+                    title: 'Alert',
+                    icon: 'fa fa-warning',
+                    type: 'green',
+                    content: 'Enter Sales Division Code'
+                });
+                break;
+            } else if ($('#sales_division_name_' + m).val() == "") {
+                valid = false;
+                $('#sales_division_name_' + m).focus();
+                $.alert({
+                    title: 'Alert',
+                    icon: 'fa fa-warning',
+                    type: 'green',
+                    content: 'Enter Sales Division Name'
+                });
+                break;
             }
         }
-    }
-    
-    public function view() {
-        $user = Auth::user();
-        $allocatedUserArea = $this->getAllocatedAreaByUser($user);
-        $zone = Zone::query();
-        $region = Region::query();
-        $area = Area::query();
-        $route = Route::query();
-        $customer = Customer::query();
-
-        if($user->u_tp_id != config('sfa.sa')){
-            if(sizeof($allocatedUserArea)>0){
-                $zone = $zone->whereIn('z_id',$allocatedUserArea->unique('z_id')->pluck('z_id')->all());
-                $region = $region->whereIn('rg_id',$allocatedUserArea->unique('rg_id')->pluck('rg_id')->all());
-                $area = $area->whereIn('ar_id',$allocatedUserArea->unique('ar_id')->pluck('ar_id')->all());
-                $route = $route->whereIn('ar_id',$allocatedUserArea->unique('ar_id')->pluck('ar_id')->all());
-                $customer = $customer->whereIn('r_id',$allocatedUserArea->unique('r_id')->pluck('r_id')->all());
-            }
-        }
-
-        $zone = $zone->get();
-        $region = $region->get();
-        $area = $area->get();
-        $route = $route->get();
-        $customer = $customer->get();
-        return view('contents.organization.customer.customer.view', compact('zone', 'region', 'area', 'route', 'customer'));
+        return valid;
     }
 
-    public function search(Request $request) {
-        $user = Auth::user();
-        $allocatedUserArea = $this->getAllocatedAreaByUser($user);
-        $customer = DB::table('zones AS z')
-            ->join('regions AS rg', 'rg.z_id', 'z.z_id')
-            ->join('areas AS a', 'a.rg_id', 'rg.rg_id')
-            ->join('routes AS r', 'r.ar_id', 'a.ar_id')
-            ->join('customers AS c', 'c.r_id', 'r.r_id')
-            ->join('customer_categories AS cc', 'cc.cus_cat_id', 'c.cus_cat_id')
-            ->leftJoin('customer_classes AS ccl', 'ccl.cus_class_id', 'c.cus_class_id')
-            ->whereNull('z.deleted_at')
-            ->whereNull('rg.deleted_at')
-            ->whereNull('a.deleted_at')
-            ->whereNull('r.deleted_at')
-            ->whereNull('c.deleted_at')
-            ->select([
-                'z.z_name',
-                'rg.rg_name',
-                'a.ar_name',
-                'r.r_name',
-                'c.cus_code',
-                'c.cus_sequence_no',
-                'c.cus_name',
-                'cc.cus_cat_name',
-                'ccl.cus_class_description',
-                'c.cus_address',
-                'c.cus_phone',
-                'c.cus_mobile',
-                'c.cus_email',
-                'c.owner_name',
-                'c.contact_person',
-                'c.contact_person_telephone',
-                'c.vat_availability',
-                'c.vat_no',
-                'c.image_url',
-                'c.cus_id',
-                'c.created_at'
-            ])
-            ->groupBy('c.cus_id');
-        return DataTables::of($customer)
-            ->addColumn('vat_status', function ($customer) {
-                if ($customer->vat_availability == 1) {
-                    return '<span style="text-align:center">Yes</span>';
-                } else {
-                    return '<span style="text-align:center">No</span>';
-                }
-            })
-            ->addColumn('edit', function ($customer) {
-                return '<div style="text-align:center">
-                <a href="' . url('customer/edit', $customer->cus_id) . '" target="_blank"><i style="color:#0998b0;font-size:18px" class="fas fa-pencil-alt fa-lg"></i></a>
-            </div>';
-            })
-            ->addColumn('image_url', function ($customer) {
-                $customer_id = $customer->cus_id;
-                $img_url = asset($customer->image_url);
-                $img_path = ltrim($customer->image_url,'storage/');
-                if(Storage::disk('public')->exists($img_path)) {
-                    $return_image = '<img src="' . $img_url . '" border="0" style="border-radius: 5px; cursor: pointer; max-width: 50px; max-height: 50px;" class="img-rounded" align="center"  data-bs-toggle="modal" data-bs-target="#myModal' . $customer_id . '" />
-                                        <div class="modal fade" id="myModal' . $customer_id . '" tabindex="-1" role="dialog" aria-labelledby="outletImageTitle" aria-hidden="true">
-                                            <div class="modal-dialog" role="document">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="outletImageTitle">' . $customer->cus_name . ' - ' . $customer->cus_address . '</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body" style="text-align: center">
-                                                        <img src="' . $img_url . '" border="0" width="400px" class="img-rounded" align="center" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>';
-                }
-                else {
-                    $return_image = '<span style="text-align: center;color:red">No Record Found</span>';
-                }
+    function form_submit(button_id, form_id) {
+        if (sales_division_validation()) {
+            $.confirm({
+            title: 'Confirm?',
+                content: 'Are you sure do you want submit this record',
+                type: 'green',
+                buttons: {
+                    Okey: {
+                        text: 'confirm',
+                        btnClass: 'btn-blue',
+                        action: function () {
+                            document.getElementById(button_id).style.display = "none";
+                            document.forms[form_id].submit();
+                        }
+                    },
+                    cancel: {
+                        text: 'cancel',
+                        btnClass: 'btn-red',
+                        action: function () {
 
-                return $return_image;
-            })
-            ->addColumn('asset', function ($customer) {
-                return '<div style="text-align:center">
-                <a href="#"><i style="color:#0998b0;font-size:18px" class="fas fa-list fa-lg"></i></a>
-            </div>';
-            })
-            ->addColumn('delete', function ($customer) {
-                return '<div style="text-align:center">
-                <a href="#" onclick="delete_customer(' . $customer->cus_id . ');"><i style="color:red;font-size:18px" class="fas fa-trash fa-lg"></i></a>
-            </div>';
-            })
-            ->rawColumns(['vat_status', 'edit', 'image_url', 'asset', 'delete'])
-            ->filter(function ($query) use ($request,$user,$allocatedUserArea) {
-                if ($request->has('z_id') && $request->get('z_id') != "") {
-                    $query->where('rg.z_id', '=', "{$request->get('z_id')}");
-                }
-                if ($request->has('rg_id') && $request->get('rg_id') != "") {
-                    $query->where('a.rg_id', '=', "{$request->get('rg_id')}");
-                }
-                if ($request->has('ar_id') && $request->get('ar_id') != "") {
-                    $query->where('r.ar_id', '=', "{$request->get('ar_id')}");
-                }
-                if ($request->has('r_id') && $request->get('r_id') != "") {
-                    $query->where('c.r_id', '=', "{$request->get('r_id')}");
-                }
-                if($user->u_tp_id != config('sfa.sa')){
-                    if(sizeof($allocatedUserArea)>0){
-                        $query->whereIn('c.r_id',$allocatedUserArea->unique('r_id')->pluck('r_id')->all());
+                        }
                     }
                 }
-                if ($request->has('search') && !is_null($request->get('search')['value'])) {
-                    $regex = $request->get('search')['value'];
-                    return $query->where(function ($queryNew) use ($regex) {
-                        $queryNew->where('z.z_name', 'like', '%' . $regex . '%')
-                            ->orWhere('rg.rg_name', 'like', '%' . $regex . '%')
-                            ->orWhere('a.ar_name', 'like', '%' . $regex . '%')
-                            ->orWhere('r.r_name', 'like', '%' . $regex . '%')
-                            ->orWhere('c.cus_code', 'like', '%' . $regex . '%')
-                            ->orWhere('c.cus_name', 'like', '%' . $regex . '%')
-                            ->orWhere('cc.cus_cat_name', 'like', '%' . $regex . '%')
-                            ->orWhere('ccl.cus_class_description', 'like', '%' . $regex . '%')
-                            ->orWhere('c.cus_address', 'like', '%' . $regex . '%')
-                            ->orWhere('c.cus_phone', 'like', '%' . $regex . '%')
-                            ->orWhere('c.cus_mobile', 'like', '%' . $regex . '%')
-                            ->orWhere('c.cus_email', 'like', '%' . $regex . '%')
-                            ->orWhere('c.owner_name', 'like', '%' . $regex . '%')
-                            ->orWhere('c.contact_person', 'like', '%' . $regex . '%')
-                            ->orWhere('c.contact_person_telephone', 'like', '%' . $regex . '%')
-                            ->orWhere('c.vat_no', 'like', '%' . $regex . '%');
-                    });
-                }
-            })
-            ->make(true);
-    }
-
-    public function edit($id) {
-        $customer = Customer::find($id);
-        $customer_category = CustomerCategory::get();
-        $customer_classification = CustomerClass::get();
-        $route = Route::get();
-        return view('contents.organization.customer.customer.edit', compact('customer', 'customer_category', 'customer_classification', 'route'));
-    }
-
-    public function update(Request $request, $id) {
-        // dd($request->all());
-
-        $validator = Validator::make($request->all(), [
-            'cus_sequence_no' => 'required',
-        ]);
-
-        if ($validator->fails())
-            return redirect()->route('customer')->with('error', $validator->errors()->first())->withErrors($validator)->withInput();
-
-        DB::beginTransaction();
-        try {
-
-            $current_sequence = null;
-            $new_sequence = $request->cus_sequence_no;
-            $sequence_route = $request->sequence_route;
-            $customer_count = Customer::where('r_id', $sequence_route)->count();
-
-            if ($new_sequence <= 1) {
-                $current_sequence =  1;
-            } else if ($new_sequence > 1) {
-                $current_sequence =  $new_sequence;
-            }
-
-            $customer_exists = Customer::where('r_id', $sequence_route)->where('cus_sequence_no', $current_sequence)->where('cus_id', '!=', $id)->get();
-            if (count($customer_exists) > 0) {
-                $customers = Customer::where('r_id', $sequence_route)
-                                        ->whereBetween('cus_sequence_no', [$current_sequence, $customer_count])
-                                        ->get();
-                foreach ($customers as $cus) {
-                    $cus->update([
-                        'cus_sequence_no' => $cus->cus_sequence_no + 1
-                    ]);
-                }
-            }
-
-            $customer = Customer::find($id);
-            $customer->cus_code = $request->customer_code;
-            $customer->cus_sequence_no = $request->cus_sequence_no;
-            $customer->cus_name = $request->customer_name;
-            $customer->cus_cat_id = $request->cus_cat_id;
-            $customer->cus_class_id = $request->cus_class_id;
-            // $customer->r_id = $request->r_id; // route change option disabled in view
-            $customer->cus_address = $request->cus_address;
-            $customer->cus_phone = $request->cus_telephone;
-            $customer->cus_mobile = $request->cus_mobile;
-            $customer->cus_email = $request->cus_email;
-            $customer->owner_name = $request->owner;
-            $customer->owner_dob = $request->owner_dob;
-            $customer->contact_person = $request->contact_person;
-            $customer->contact_person_telephone = $request->contact_person_tp;
-            $customer->credit_limit = $request->credit_limit;
-            $customer->dealer_board = $request->dealer_board_status;
-            $customer->vat_availability = $request->vat_availability_status;
-            if ($request->vat_availability_status == '1') {
-                $customer->vat_no = $request->vat_no;
-            }
-            $customer->save();
-
-            DB::commit();
-            return redirect()->route('customer_view')->with('success', 'RECORD HAS BEEN SUCCESSFULLY UPDATED!');
-        } catch (\Exception $e) {
-            DB::rollback();
-            // dd($e);
-            return redirect()->route('customer_view')->with('error', 'RECORD HAS NOT BEEN SUCCESSFULLY UPDATED!');
-        }
-    }
-
-    function distroy(Request $request) {
-        Customer::find($request->id)->delete();
-        return session()->flash('success', 'RECORD HAS BEEN SUCCESSFULLY DELETED!');
-    }
-
-    public function export(Request $request) {
-        $customer = DB::table('zones AS z')
-            ->join('regions AS rg', 'rg.z_id', 'z.z_id')
-            ->join('areas AS a', 'a.rg_id', 'rg.rg_id')
-            ->join('routes AS r', 'r.ar_id', 'a.ar_id')
-            ->join('customers AS c', 'c.r_id', 'r.r_id')
-            ->join('customer_categories AS cc', 'cc.cus_cat_id', 'c.cus_cat_id')
-            ->join('customer_classes AS ccl', 'ccl.cus_class_id', 'c.cus_class_id')
-            ->whereNull('z.deleted_at')
-            ->whereNull('rg.deleted_at')
-            ->whereNull('a.deleted_at')
-            ->whereNull('r.deleted_at')
-            ->whereNull('c.deleted_at')
-            ->select([
-                'z.z_name',
-                'rg.rg_name',
-                'a.ar_name',
-                'r.r_name',
-                'c.cus_code',
-                'c.cus_name',
-                'cc.cus_cat_name',
-                'ccl.cus_class_description',
-                'c.cus_address',
-                'c.cus_phone',
-                'c.cus_mobile',
-                'c.cus_email',
-                'c.owner_name',
-                'c.contact_person',
-                'c.contact_person_telephone',
-                'c.vat_availability',
-                'c.vat_no',
-                'c.image_url',
-                'c.cus_id',
-                'c.created_at'
-            ])
-            ->groupBy('c.cus_id');
-
-        if ($request->has('z_id') && $request->get('z_id') != "") {
-            $customer->where('rg.z_id', '=', "{$request->get('z_id')}");
-        }
-        if ($request->has('rg_id') && $request->get('rg_id') != "") {
-            $customer->where('a.rg_id', '=', "{$request->get('rg_id')}");
-        }
-        if ($request->has('ar_id') && $request->get('ar_id') != "") {
-            $customer->where('r.ar_id', '=', "{$request->get('ar_id')}");
-        }
-        if ($request->has('r_id') && $request->get('r_id') != "") {
-            $customer->where('c.r_id', '=', "{$request->get('r_id')}");
-        }
-        if ($request->has('search') && !is_null($request->get('search')['value'])) {
-            $regex = $request->get('search')['value'];
-            return $customer->where(function ($queryNew) use ($regex) {
-                $queryNew->where('z.z_name', 'like', '%' . $regex . '%')
-                    ->orWhere('rg.rg_name', 'like', '%' . $regex . '%')
-                    ->orWhere('a.ar_name', 'like', '%' . $regex . '%')
-                    ->orWhere('r.r_name', 'like', '%' . $regex . '%')
-                    ->orWhere('c.cus_code', 'like', '%' . $regex . '%')
-                    ->orWhere('c.cus_name', 'like', '%' . $regex . '%')
-                    ->orWhere('cc.cus_cat_name', 'like', '%' . $regex . '%')
-                    ->orWhere('ccl.cus_class_description', 'like', '%' . $regex . '%')
-                    ->orWhere('c.cus_address', 'like', '%' . $regex . '%')
-                    ->orWhere('c.cus_phone', 'like', '%' . $regex . '%')
-                    ->orWhere('c.cus_mobile', 'like', '%' . $regex . '%')
-                    ->orWhere('c.cus_email', 'like', '%' . $regex . '%')
-                    ->orWhere('c.owner_name', 'like', '%' . $regex . '%')
-                    ->orWhere('c.contact_person', 'like', '%' . $regex . '%')
-                    ->orWhere('c.contact_person_telephone', 'like', '%' . $regex . '%')
-                    ->orWhere('c.vat_no', 'like', '%' . $regex . '%');
             });
         }
-
-        return Excel::download(new CustomerExportExcel($customer->get()), 'outlets.xlsx');
     }
+</script>
+@endsection
 
-    public function transfer() {
-        $user = Auth::user();
-        $allocatedUserArea = $this->getAllocatedAreaByUser($user);
-        $zone = Zone::query();
-        $region = Region::query();
-        $area = Area::query();
-        $route = Route::query();
-        $customer = Customer::query();
 
-        if($user->u_tp_id == config('sfa.asm')){
-            $zone = $zone->whereIn('z_id',$allocatedUserArea->unique('z_id')->pluck('z_id')->all());
-            $region = $region->whereIn('rg_id',$allocatedUserArea->unique('rg_id')->pluck('rg_id')->all());
-            $area = $area->whereIn('ar_id',$allocatedUserArea->unique('ar_id')->pluck('ar_id')->all());
-            $route = $route->whereIn('ar_id',$allocatedUserArea->unique('ar_id')->pluck('ar_id')->all());
-            $customer = $customer->whereIn('r_id',$allocatedUserArea->unique('r_id')->pluck('r_id')->all());
-        }
+//view
 
-        $zone = $zone->get();
-        $region = $region->get();
-        $area = $area->get();
-        $route = $route->get();
-        $customer = $customer->get();
-        return view('contents.organization.customer.customer.transfer', [ 'zone' => $zone, 'region' => $region, 'area' => $area, 'route' => $route, 'customer' => $customer, ]);
+@extends('layouts.app')
+
+@section('css')
+    @include('includes.datatables.css')
+@endsection
+
+@section('title', config('sfa.type'))
+
+@section('content')
+<div class="container-fluid dashboard-content ">
+    <!-- ============================================================== -->
+    <!-- pageheader  -->
+    <!-- ============================================================== -->
+    <div class="row">
+        <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+            <div class="page-header" style="text-align: center;">
+                <h2 class="pageheader-title">VIEW SALES DIVISION</h2>
+                <div class="page-breadcrumb">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ============================================================== -->
+    <!-- end pageheader  -->
+    <!-- ============================================================== -->
+    @php
+    use App\Models\User\User;
+    if(isset(Auth::user()->u_tp_id)) {
+        $checkUserPermitedUrledit = User::checkUserPermitedUrl('SALES DIVISION EDIT');
+        $checkUserPermitedUrldelete = User::checkUserPermitedUrl('SALES DIVISION DELETE');
     }
+    @endphp
+    <div class="ecommerce-widget">
+        <div class="row">
+            <div class="col-md-2 col-sm-12 col-xs-12 form-group">
+            </div>
+            <div class="col-md-8 col-sm-12 col-xs-12 form-group text-center">
+                <div class="card">
+                    <div class="card-body">
+                        <table class="table table-striped table-bordered first">
+                            <thead class="thead-custom">
+                                <tr>
+                                    <th style="text-align: center">&nbsp</th>
+                                    <th style="text-align: center">SALES DIVISION CODE</th>
+                                    <th style="text-align: center">SALES DIVISION NAME</th>
+                                    <th style="text-align: center">ADDED DATE</th>
+                                    <th style="text-align: center">EDIT</th>
+                                    <th style="text-align: center">STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($sales_division as $key=>$sd)
+                                @php $key = $key+1; @endphp
+                                <tr>
+                                    <td>{{$key}}</td>
+                                    <td style="text-align: left">{{$sd->sd_code}}</td>
+                                    <td style="text-align: left">{{$sd->sd_name}}</td>
+                                    <td>{{$sd->created_at}}</td>
+                                    <td>
+                                        @if(!$sd->trashed())
+                                        <div style="text-align:center">
+                                            @if ($checkUserPermitedUrledit)
+                                            <a href="{{url('sales_division/edit', $sd->sd_id)}}" target="_blank"><i
+                                                    style="color:#0998b0;font-size:18px"
+                                                    class="fas fa-pencil-alt fa-lg"></i></a>
+                                            @else
+                                            <a href="javascript:void(0);"><i style="color:gray;font-size:18px"
+                                                    class="fas fa-pencil-alt fa-lg"></i></a>
+                                            @endif
+                                        </div>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if (!$sd->trashed())
+                                        @php $current_status = 1; @endphp
 
-    public function transfer_search(Request $request) {
-        $customers = DB::table('customers AS cus')
-                    ->join('routes AS r', 'r.r_id', 'cus.r_id')
-                    ->join('areas As ar', 'ar.ar_id', 'r.ar_id')
-                    ->join('regions As rg', 'rg.rg_id', 'ar.rg_id')
-                    ->leftjoin('customer_categories as cca', 'cca.cus_cat_id', 'cus.cus_cat_id')
-                    ->leftjoin('discount_customer_details as dcd', 'dcd.cus_id', 'cus.cus_id')
-                    ->leftjoin('discount_customers as disc', 'disc.discount_id', 'dcd.discount_id')
-                    ->where(function($query){
-                        $query->where('dcd.customer_status', '=', '0')
-                        ->orwhere(function($query){
-                            $query->whereNull('dcd.customer_status');
+                                        <div style="text-align:center">
+                                            @if ($checkUserPermitedUrldelete)
+                                            <a href="" onclick="change_status('{{$current_status}}','{{$sd->sd_id}}')"
+                                                class="btn btn-success btn-sm">Enable</a>
+                                            @else
+                                            <button disabled="disabled" class="btn btn-success btn-sm">Enable</button>
+                                            @endif
+
+                                        </div>
+                                        @else
+                                        @php $current_status = 0; @endphp
+                                        <div style="text-align:center">
+                                            @if ($checkUserPermitedUrldelete)
+                                            <a href="" onclick="change_status('{{$current_status}}','{{$sd->sd_id}}')"
+                                                class="btn btn-danger btn-sm">Disable</a>
+                                            @else
+                                            <button disabled="disabled" class="btn btn-danger btn-sm">Disable</button>
+                                            @endif
+                                        </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-12 col-xs-12 form-group">
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+@section('js')
+
+@include('includes.datatables.js')
+
+<script type="text/javascript">
+
+    function change_status(status,id){
+        event.preventDefault();
+        $.confirm({
+        title: 'Confirm?',
+            content: 'Are you sure do you want change status of this record',
+            type: 'green',
+            buttons: {
+                Okey: {
+                    text: 'confirm',
+                    btnClass: 'btn-blue',
+                    action: function () {
+                        $.ajax({
+                            type: "POST",
+                            url: "{{ url('/sales_division/status') }}",
+                            data: {
+                                id: id,
+                                status: status,
+                                "_token": "{{ csrf_token() }}"
+                            },
+                            success: function (data) {
+                                window.location.href = "{{ route('sales_division_view')}}";
+                            }
                         });
-                    })
-                    ->whereNull('r.deleted_at')
-                    ->whereNull('ar.deleted_at')
-                    ->whereNull('rg.deleted_at')
-                    ->orderBy('r.created_at')
-                    ->select([                
-                        'cus.cus_id',
-                        'cus.cus_code',
-                        'cus.cus_name',
-                        'cus.cus_address',
-                        'cus.owner_name',
-                        'cus.r_id',
-                        'r.ar_id',
-                        'r.r_name',
-                        'ar.rg_id',
-                        'rg.z_id',
-                        'cca.cus_cat_name',
-                        'disc.discount_label',
-                        DB::raw("CONCAT(dcd.discount, '%') AS discount"),
-                        DB::raw("DATE_FORMAT(cus.cus_created_time,'%Y-%m-%d') AS added_date"),
-                    ]);
-        return DataTables::of($customers)
-            ->addColumn('checkbox', function ($customers) {
-                $btn = '<input type="checkbox" id="checkbox_'.$customers->cus_id.'" name="customers[]" value="'.$customers->cus_id.'" data-id="'.$customers->cus_id.'" class="single-checkbox" onclick="select_single_checkbox(event)"/>';
-                return '<div style="text-align:center">'
-                            .$btn.
-                        '</div>';
-            })
-            ->rawColumns(['checkbox'])
-            ->filter(function ($query) use ($request) {
-                if ($request->has('z_id') && $request->get('z_id')  != '') {
-                    $query->where('rg.z_id',  $request->get('z_id'));
-                }
-                if ($request->has('rg_id') && $request->get('rg_id')  != '') {
-                    $query->where('ar.rg_id', '=', $request->get('rg_id'));
-                }
-                if ($request->has('ar_id') && $request->get('ar_id')  != '') {
-                    $query->where('ar.ar_id', '=', $request->get('ar_id'));
-                }
-                if ($request->has('r_id') && $request->get('r_id')  != '') {
-                    $query->where('r.r_id', '=', $request->get('r_id'));
-                }
-                if ($request->has('cus_id') && $request->get('cus_id')  != '') {
-                    $query->where('cus.cus_id', '=', $request->get('cus_id'));
-                }
-            })
-            ->make(true);
-    }
+                    }
+                },
+                cancel: {
+                    text: 'cancel',
+                    btnClass: 'btn-red',
+                    action: function () {
 
-    public function transfer_save(Request $request) {
-        // dd($request->all());
-        DB::beginTransaction();
-        try {
-
-            foreach ($request->customers as $customer) {
-                $customer_db = Customer::where('cus_id', $customer)->where('r_id', $request->old_r_id)->first();
-                if (isset($customer_db)) {
-                    // update customer
-                    $customer_db->update([
-                        'r_id' => $request->new_r_id
-                    ]);
-                    
-                    // get letest transfer details
-                    $transfer_details = CustomerTransferDetail::where('cus_id', $customer)->latest()->first();
-
-                    if (isset($transfer_details)) {
-
-                        // set end date of current transfer
-                        $transfer_details->update([
-                            'date_to' => now()
-                        ]);
-
-                        // create new transfer details
-                        CustomerTransferDetail::create([
-                            'cus_id'=> $customer,
-                            'r_id'=> $request->old_r_id,
-                            'ar_id'=> $request->old_ar_id,
-                            'rg_id'=> $request->old_rg_id,
-                            'z_id'=> $request->old_z_id,
-                            'transfer_time'=> $transfer_details->transfer_time+1,
-                            'new_r_id'=> $request->new_r_id,
-                            'new_ar_id'=> $request->new_ar_id,
-                            'new_rg_id'=> $request->new_rg_id,
-                            'new_z_id'=> $request->new_z_id,
-                            'date_from'=> now(),
-                            'date_to'=> config('sfa.enddate'),
-                            'added_by'=> Auth::user()->u_id,
-                        ]);
-                    } else {
-                        // create new transfer details, when initial transfer details are not available
-                        CustomerTransferDetail::create([
-                            'cus_id'=> $customer,
-                            'r_id'=> $request->old_r_id,
-                            'ar_id'=> $request->old_ar_id,
-                            'rg_id'=> $request->old_rg_id,
-                            'z_id'=> $request->old_z_id,
-                            'transfer_time'=> 1,
-                            'new_r_id'=> $request->new_r_id,
-                            'new_ar_id'=> $request->new_ar_id,
-                            'new_rg_id'=> $request->new_rg_id,
-                            'new_z_id'=> $request->new_z_id,
-                            'date_from'=> now(),
-                            'date_to'=> config('sfa.enddate'),
-                            'added_by'=> Auth::user()->u_id,
-                        ]);
                     }
                 }
             }
+        });
+    }
 
-            DB::commit();
-            return redirect()->route('customer_transfer')->with('success', 'Customer/s Transfer Success.');
-        } catch (\Exception $e) {
-            DB::rollback();
-            dd($e);
-            return redirect()->route('customer_transfer')->with('error', 'Customer/s Transfer Failed.');
+</script>
+@endsection
+
+//edit
+@extends('layouts.app')
+
+@section('title', config('sfa.type'))
+
+@section('content')
+<div class="container-fluid dashboard-content ">
+    <!-- ============================================================== -->
+    <!-- pageheader  -->
+    <!-- ============================================================== -->
+    <div class="row">
+        <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+            <div class="page-header" style="text-align: center;">
+                <h2 class="pageheader-title">EDIT SALES DIVISION</h2>
+                <div class="page-breadcrumb">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                           
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ============================================================== -->
+    <!-- end pageheader  -->
+    <!-- ============================================================== -->
+    <div class="ecommerce-widget">
+        <form action="{{url('sales_division/update',$sales_division->sd_id)}}" method="post" name="sales_division_edit_form" id="sales_division_edit_form" onsubmit="sales_division_edit_validation();"> 
+        @csrf
+        <div class="row">
+            <div class="col-md-3 col-sm-12 col-xs-12 form-group">
+            </div>
+            <div class="col-md-6 col-sm-12 col-xs-12 form-group text-center">
+                <table class="table table-striped table-bordered first">
+                    <thead class="thead-custom">
+                        <tr>
+                            <th style="text-align: center">SALES DIVISION CODE</th>
+                            <th style="text-align: center">SALES DIVISION NAME</th>
+                        </tr>
+                    </thead>
+                    <tbody id="zone">
+                        <tr id="tr_1">
+                            <td>
+                            <input type="text" id="sales_division_code_1" name="sales_division_code_1" value="{{$sales_division->sd_code}}" class="col-md-12 form-control form-control-sm" autocomplete="off" />
+                            </td>
+                            <td>
+                            <input type="text" id="sales_division_name_1" name="sales_division_name_1" value="{{$sales_division->sd_name}}" class="col-md-12 form-control form-control-sm" autocomplete="off" />
+                            </td>
+                        </tr>
+                    </tbody>
+                    <input type="hidden" id="item_count" name="item_count" value="1" />
+                    <input type="hidden" id="delete_item_count" name="delete_item_count" value="1" />
+                </table>
+                <div class="form-group mt-sm-1 mb-sm-1">
+                    <div class="">
+                        <button class="btn btn-secondary btn-sm" type="button" onclick="reset_page()">CLEAR</button>
+                        <button type="button" id="add" class="btn btn-primary btn-sm" onclick="form_submit('add', 'sales_division_edit_form')">UPDATE</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-12 col-xs-12 form-group">
+            </div>
+        </div>
+        </form>
+    </div>
+</div>
+@endsection
+@section('js')
+
+<script type="text/javascript">
+
+    function reset_page(){
+        $.confirm({
+        title: 'Confirm?',
+            content: 'Are you sure do you want to reset ?',
+            type: 'green',
+            buttons: {
+                Okey: {
+                    text: 'Yes',
+                    btnClass: 'btn-blue',
+                    action: function () {
+                        location.reload();
+                    }
+                },
+                cancel: {
+                    text: 'No',
+                    btnClass: 'btn-red',
+                    action: function () {
+                    
+                    }
+                }
+            }
+        });
+    }
+
+    function sales_division_edit_validation(){
+        valid = true;
+        for (m = 1; m <= parseInt($('#item_count').val()); m++) {
+            if ($('#sales_division_code_' + m).val() == "") {
+                valid = false;
+                $('#sales_division_code_' + m).focus();
+                $.alert({
+                    title: 'Alert',
+                    icon: 'fa fa-warning',
+                    type: 'green',
+                    content: 'Enter Sales Division Code'
+                });
+                break;
+            } else if ($('#sales_division_name_' + m).val() == "") {
+                valid = false;
+                $('#sales_division_name_' + m).focus();
+                $.alert({
+                    title: 'Alert',
+                    icon: 'fa fa-warning',
+                    type: 'green',
+                    content: 'Enter Sales Division Name'
+                });
+                break;
+            }
+        }
+        return valid;
+    }
+
+    function form_submit(button_id, form_id) {
+        if (sales_division_edit_validation()) {
+            $.confirm({
+            title: 'Confirm?',
+                content: 'Are you sure do you want submit this record',
+                type: 'green',
+                buttons: {
+                    Okey: {
+                        text: 'confirm',
+                        btnClass: 'btn-blue',
+                        action: function () {
+                            document.getElementById(button_id).style.display = "none";
+                            document.forms[form_id].submit();
+                        }
+                    },
+                    cancel: {
+                        text: 'cancel',
+                        btnClass: 'btn-red',
+                        action: function () {
+
+                        }
+                    }
+                }
+            });
         }
     }
-  
-}
+
+</script>
+@endsection
+
+
+
+
+
+<?php
+
+use App\Http\Controllers\API\Sales\V1\UnproductiveController;
+use App\Http\Controllers\LoginController;
+use App\Http\Controllers\Web\CommonFunctionController;
+use App\Http\Controllers\Web\Competitor\CompetitorController;
+use App\Http\Controllers\Web\Gps\GpsMapController;
+use App\Http\Controllers\Web\Itinerary\DayTypeController;
+use App\Http\Controllers\Web\Itinerary\ItineraryController;
+use App\Http\Controllers\Web\Itinerary\MonthTemplateController;
+use App\Http\Controllers\Web\Order\InvoiceController;
+use App\Http\Controllers\Web\Order\SalesOrderController;
+use App\Http\Controllers\Web\Organization\AreaController;
+use App\Http\Controllers\Web\Organization\CustomerCategoryController;
+use App\Http\Controllers\Web\Organization\CustomerClassController;
+use App\Http\Controllers\Web\Organization\CustomerController;
+use App\Http\Controllers\Web\Organization\RegionController;
+use App\Http\Controllers\Web\Organization\RouteController;
+use App\Http\Controllers\Web\Organization\SalesDivisionController;
+use App\Http\Controllers\Web\Organization\ZoneController;
+use App\Http\Controllers\Web\Other\ApkUploadController;
+use App\Http\Controllers\Web\Other\BankController;
+use App\Http\Controllers\Web\Other\ExpenseController;
+use App\Http\Controllers\Web\Other\PaymentTypeController;
+use App\Http\Controllers\Web\Other\SystemComponentController;
+use App\Http\Controllers\Web\Other\SystemReasonsController;
+use App\Http\Controllers\Web\Other\UnplanedVisitController;
+use App\Http\Controllers\Web\Other\VatController;
+use App\Http\Controllers\Web\Product\ProductGiftItemController;
+use App\Http\Controllers\Web\Product\ProductMainCategoryController;
+use App\Http\Controllers\Web\Product\ProductMasterController;
+use App\Http\Controllers\Web\Product\ProductPosmController;
+use App\Http\Controllers\Web\Product\ProductSkuController;
+use App\Http\Controllers\Web\Product\ProductSubCategoryController;
+use App\Http\Controllers\Web\Promotion\AdhocFreeIssueController;
+use App\Http\Controllers\Web\Promotion\AssortedFreeIssueController;
+use App\Http\Controllers\Web\Promotion\DiscountController;
+use App\Http\Controllers\Web\Promotion\DiscountFlatContoller;
+use App\Http\Controllers\Web\Promotion\DiscountCustomerController;
+use App\Http\Controllers\Web\Promotion\FreeIssueHierarchyController;
+use App\Http\Controllers\Web\Promotion\LineFreeIssueController;
+use App\Http\Controllers\Web\Promotion\PromotionPriorityController;
+use App\Http\Controllers\Web\Promotion\ValueFreeIssueController;
+use App\Http\Controllers\Web\Stock\OpenStockController;
+use App\Http\Controllers\Web\Stock\PurchaseOrderController;
+use App\Http\Controllers\Web\Test\ImportController;
+use App\Http\Controllers\Web\User\UserController;
+use App\Http\Controllers\Web\User\UserTypeController;
+use App\Http\Controllers\Web\Other\MessageController;
+use App\Http\Controllers\Web\Report\RepAttendanceController;
+use App\Http\Controllers\Web\Report\SalesRepController;
+use App\Http\Controllers\Web\Report\ItemController;
+use App\Http\Controllers\Web\Report\ShopReportController;
+use App\Http\Controllers\Web\Report\AreaWiseShopController;
+use App\Http\Controllers\Web\Report\RouteWiseShopController;
+use App\Http\Controllers\Web\Distributor\DistributorController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
+|
+*/
+
+Route::get('/', [LoginController::class, 'index'])->name('index');
+Route::post('/authenticate', [LoginController::class, 'authenticate'])->name('authenticate');
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+Route::group(['middleware' => ['auth']], function () { 
+
+    Route::get('home', [LoginController::class, 'home'])->name('home');
+
+    // Sales division
+    Route::group(['prefix' => 'sales_division'], function () {
+        Route::get('load', [SalesDivisionController::class, 'index'])->name('sales_division');
+        Route::post('save', [SalesDivisionController::class, 'save']);
+        Route::get('view', [SalesDivisionController::class, 'view'])->name('sales_division_view');
+        Route::get('edit/{id}', [SalesDivisionController::class, 'edit']);
+        Route::post('update/{id}', [SalesDivisionController::class, 'update']);
+        Route::post('status', [SalesDivisionController::class, 'change_status']);
+    });
+
+    // Zone 
+    Route::group(['prefix' => 'zone'], function () {
+        Route::get('load', [ZoneController::class, 'index'])->name('zone_registration');
+        Route::post('get_sales_division', [ZoneController::class, 'get_sales_division']);
+        Route::post('save', [ZoneController::class, 'save']);
+        Route::get('view', [ZoneController::class, 'view'])->name('zone_view');
+        Route::get('search', [ZoneController::class, 'search']);
+        Route::get('edit/{id}', [ZoneController::class, 'edit']);
+        Route::post('update/{id}', [ZoneController::class, 'update']);
+        Route::post('status', [ZoneController::class, 'change_status']);
+    });
+
+    // Region
+    Route::group(['prefix' => 'region'], function () {
+        Route::get('load', [RegionController::class, 'index'])->name('region_registration');
+        Route::post('get_zone', [RegionController::class, 'get_zone']);
+        Route::post('save', [RegionController::class, 'save']);
+        Route::get('view', [RegionController::class, 'view'])->name('region_view');
+        Route::get('search', [RegionController::class, 'search']);
+        Route::get('edit/{id}', [RegionController::class, 'edit']);
+        Route::post('update/{id}', [RegionController::class, 'update']);
+        Route::post('status', [RegionController::class, 'change_status']);
+        Route::get('transfer', [RegionController::class, 'transfer'])->name('region_transfer');
+        Route::get('transfer/search', [RegionController::class, 'transfer_search']);
+        Route::post('transfer/save', [RegionController::class, 'transfer_save']);
+    });
+
+    // Area (In view use as Territory)
+    Route::group(['prefix' => 'area'], function () {
+        Route::get('load', [AreaController::class, 'index'])->name('area_registration');
+        Route::post('get_zone', [AreaController::class, 'get_zone']);
+        Route::post('get_region', [AreaController::class, 'get_region']);
+        Route::post('save', [AreaController::class, 'save']);
+        Route::get('view', [AreaController::class, 'view'])->name('area_view');
+        Route::get('search', [AreaController::class, 'search']);
+        Route::get('edit/{id}', [AreaController::class, 'edit']);
+        Route::post('update/{id}', [AreaController::class, 'update']);
+        Route::post('status', [AreaController::class, 'change_status']);
+        Route::get('transfer', [AreaController::class, 'transfer'])->name('area_transfer');
+        Route::get('transfer/search', [AreaController::class, 'transfer_search']);
+        Route::post('transfer/save', [AreaController::class, 'transfer_save']);
+    });
+
+    // Route
+    Route::group(['prefix' => 'route'], function () {
+        Route::get('load', [RouteController::class, 'index'])->name('route_registration');
+        Route::post('get_zone', [RouteController::class, 'get_zone']);
+        Route::post('get_region', [RouteController::class, 'get_region']);
+        Route::post('get_area', [RouteController::class, 'get_area']);
+        Route::post('save', [RouteController::class, 'save']);
+        Route::get('view', [RouteController::class, 'view'])->name('route_view');
+        Route::get('search', [RouteController::class, 'search']);
+        Route::get('edit/{id}', [RouteController::class, 'edit']);
+        Route::post('update/{id}', [RouteController::class, 'update']);
+        Route::post('status', [RouteController::class, 'change_status']);
+        Route::get('transfer', [RouteController::class, 'transfer'])->name('route_transfer');
+        Route::get('transfer/search', [RouteController::class, 'transfer_search']);
+        Route::post('transfer/save', [RouteController::class, 'transfer_save']);
+    });
+
+    // Customer Category (In view use as Outlet Category)
+    Route::group(['prefix' => 'customer_category'], function () {
+        Route::get('load', [CustomerCategoryController::class, 'index'])->name('customer_category');
+        Route::post('save', [CustomerCategoryController::class, 'save']);
+        Route::get('view', [CustomerCategoryController::class, 'view'])->name('customer_category_view');
+        Route::get('edit/{id}', [CustomerCategoryController::class, 'edit']);
+        Route::post('update/{id}', [CustomerCategoryController::class, 'update']);
+        Route::post('status', [CustomerCategoryController::class, 'change_status']);
+    });
+
+    // Customer Class (In view use as Outlet Class)
+    Route::group(['prefix' => 'customer_class'], function () {
+        Route::get('load', [CustomerClassController::class, 'index'])->name('customer_class');
+        Route::post('save', [CustomerClassController::class, 'save']);
+        Route::get('view', [CustomerClassController::class, 'view'])->name('customer_class_view');
+        Route::get('edit/{id}', [CustomerClassController::class, 'edit']);
+        Route::post('update/{id}', [CustomerClassController::class, 'update']);
+        Route::post('status', [CustomerClassController::class, 'change_status']);
+    });
+
+    // Customer (In view use as Outlet)
+    Route::group(['prefix' => 'customer'], function () {
+        Route::get('load', [CustomerController::class, 'index'])->name('customer');
+        Route::post('save', [CustomerController::class, 'save']);
+        Route::get('view', [CustomerController::class, 'view'])->name('customer_view');
+        Route::get('search', [CustomerController::class, 'search']);
+        Route::get('edit/{id}', [CustomerController::class, 'edit']);
+        Route::post('update/{id}', [CustomerController::class, 'update']);
+        Route::post('delete', [CustomerController::class, 'distroy']);
+        Route::get('export', [CustomerController::class, 'export']);
+        Route::get('transfer', [CustomerController::class, 'transfer'])->name('customer_transfer');
+        Route::get('transfer/search', [CustomerController::class, 'transfer_search']);
+        Route::post('transfer/save', [CustomerController::class, 'transfer_save']);
+    });
+
+    // User Type 
+    Route::group(['prefix' => 'user_type'], function () {
+        Route::get('load', [UserTypeController::class, 'index'])->name('user_type');
+        Route::post('save', [UserTypeController::class, 'save']);
+        Route::get('view', [UserTypeController::class, 'view'])->name('user_type_view');
+        Route::get('edit/{id}', [UserTypeController::class, 'edit']);
+        Route::post('update/{id}', [UserTypeController::class, 'update']);
+        Route::post('status', [UserTypeController::class, 'change_status']);
+    });
+
+    // User
+    Route::group(['prefix' => 'user'], function () {
+        Route::get('load', [UserController::class, 'index'])->name('user_registration');
+        Route::post('check_ucode', [UserController::class, 'check_ucode']);
+        Route::post('check_discode', [UserController::class, 'check_discode']);
+        Route::post('distributor', [UserController::class, 'distributor']);
+        Route::post('area', [UserController::class, 'area']);
+        Route::post('save', [UserController::class, 'save']);
+        Route::get('view', [UserController::class, 'view'])->name('user_view');
+        Route::get('search', [UserController::class, 'search']);
+        Route::get('edit/{id}', [UserController::class, 'edit'])->name('user_edit');
+        Route::post('update/{id}', [UserController::class, 'update']);
+        Route::post('status', [UserController::class, 'change_status']);
+    });
+
+    // Day Types
+    Route::group(['prefix' => 'day_type'], function () {
+        Route::get('load', [DayTypeController::class, 'index']);
+        Route::post('save', [DayTypeController::class, 'save']);
+        Route::get('view', [DayTypeController::class, 'view'])->name('day_type');
+        Route::get('search', [DayTypeController::class, 'search']);
+        Route::get('status', [DayTypeController::class, 'change_status']);
+        Route::get('edit/{id}', [DayTypeController::class, 'edit']);
+        Route::post('update/{id}', [DayTypeController::class, 'update']);
+    });
+
+    // Month Template
+    Route::group(['prefix' => 'month_template'], function () {
+        Route::get('load', [MonthTemplateController::class, 'index'])->name('month_template');
+        Route::post('load_details', [MonthTemplateController::class, 'load_details']);
+        Route::post('save', [MonthTemplateController::class, 'save']);
+        Route::get('view', [MonthTemplateController::class, 'view'])->name('month_template_view');
+        Route::get('search', [MonthTemplateController::class, 'search']);
+        Route::get('display/{id}', [MonthTemplateController::class, 'display']);
+        Route::get('edit/{id}', [MonthTemplateController::class, 'edit'])->name('month_template_edit');
+        Route::post('update/{id}', [MonthTemplateController::class, 'update']);
+    });
+
+    // Itinerary
+    Route::group(['prefix' => 'itinerary'], function () {
+        Route::get('load', [ItineraryController::class, 'index'])->name('itinerary_registration');
+        Route::get('sales_rep', [ItineraryController::class, 'sales_rep']);
+        Route::post('load_info', [ItineraryController::class, 'load']);
+        Route::post('route', [ItineraryController::class, 'area_routes']);
+        Route::post('save', [ItineraryController::class, 'store']);
+        Route::get('view', [ItineraryController::class, 'view'])->name('itinerary_view');
+        Route::get('search', [ItineraryController::class, 'search']);
+        Route::get('display/{id}', [ItineraryController::class, 'display']);
+        Route::get('edit/{id}', [ItineraryController::class, 'edit'])->name('itinerary_edit');
+        Route::post('update/{id}', [ItineraryController::class, 'update']);
+        Route::post('outlet_info', [ItineraryController::class, 'outlet_info']);
+    });
+
+    // Product Main Categories
+    Route::group(['prefix' => 'product_main_category'], function () {
+        Route::get('load', [ProductMainCategoryController::class, 'index'])->name('product_main_category');
+        Route::post('save', [ProductMainCategoryController::class, 'save']);
+        Route::get('search', [ProductMainCategoryController::class, 'search']);
+        Route::get('view', [ProductMainCategoryController::class, 'view'])->name('product_main_category_view');
+        Route::get('edit/{id}', [ProductMainCategoryController::class, 'edit'])->name('product_main_category_edit');
+        Route::post('update/{id}', [ProductMainCategoryController::class, 'update']);
+        Route::post('status', [ProductMainCategoryController::class, 'change_status']);
+    });
+
+    // Product Sub Categories
+    Route::group(['prefix' => 'product_sub_category'], function () {
+        Route::get('load', [ProductSubCategoryController::class, 'index'])->name('product_sub_category');
+        Route::post('save', [ProductSubCategoryController::class, 'save']);
+        Route::get('search', [ProductSubCategoryController::class, 'search']);
+        Route::get('view', [ProductSubCategoryController::class, 'view'])->name('product_sub_category_view');
+        Route::get('edit/{id}', [ProductSubCategoryController::class, 'edit'])->name('product_sub_category_edit');
+        Route::post('update/{id}', [ProductSubCategoryController::class, 'update']);
+        Route::post('status', [ProductSubCategoryController::class, 'change_status']);
+    });
+
+    // Product Master
+    Route::group(['prefix' => 'product_master'], function () {
+        Route::get('load', [ProductMasterController::class, 'index'])->name('product_master');
+        Route::post('save', [ProductMasterController::class, 'save']);
+        Route::get('search', [ProductMasterController::class, 'search']);
+        Route::get('view', [ProductMasterController::class, 'view'])->name('product_master_view');
+        Route::get('edit/{id}', [ProductMasterController::class, 'edit'])->name('product_master_edit');
+        Route::post('update/{id}', [ProductMasterController::class, 'update']);
+        Route::post('status', [ProductMasterController::class, 'change_status']);
+    });
+
+    // Product Sku
+    Route::group(['prefix' => 'product_sku'], function () {
+        Route::get('load', [ProductSkuController::class, 'index'])->name('product_sku');
+        Route::post('save', [ProductSkuController::class, 'save']);
+        Route::get('search', [ProductSkuController::class, 'search']);
+        Route::get('view', [ProductSkuController::class, 'view'])->name('product_sku_view');
+        Route::get('edit/{id}', [ProductSkuController::class, 'edit'])->name('product_sku_edit');
+        Route::post('update/{id}', [ProductSkuController::class, 'update']);
+        Route::post('status', [ProductSkuController::class, 'change_status']);
+        Route::post('load_product_data', [ProductSkuController::class, 'load_product_data']);
+    });
+
+    // Product Gift Items
+    Route::group(['prefix' => 'product_gift_item'], function () {
+        Route::get('load', [ProductGiftItemController::class, 'index'])->name('product_gift_item');
+        Route::post('save', [ProductGiftItemController::class, 'save']);
+        Route::get('search', [ProductGiftItemController::class, 'search']);
+        Route::get('view', [ProductGiftItemController::class, 'view'])->name('product_gift_item_view');
+        Route::get('edit/{id}', [ProductGiftItemController::class, 'edit'])->name('product_gift_item_edit');
+        Route::post('update/{id}', [ProductGiftItemController::class, 'update']);
+        Route::post('status', [ProductGiftItemController::class, 'change_status']);
+    });
+
+    // Product POSM
+    Route::group(['prefix' => 'product_posm'], function () {
+        Route::get('load', [ProductPosmController::class, 'index'])->name('product_posm');
+        Route::post('save', [ProductPosmController::class, 'save']);
+        Route::get('search', [ProductPosmController::class, 'search']);
+        Route::get('view', [ProductPosmController::class, 'view'])->name('product_posm_view');
+        Route::get('edit/{id}', [ProductPosmController::class, 'edit'])->name('product_posm_edit');
+        Route::post('update/{id}', [ProductPosmController::class, 'update']);
+        Route::post('status', [ProductPosmController::class, 'change_status']);
+    });
+
+    // Line Free Issue
+    Route::group(['prefix' => 'line_free'], function () {
+        Route::get('load', [LineFreeIssueController::class, 'index'])->name('line_free_issue');
+        Route::post('save', [LineFreeIssueController::class, 'save']);
+        Route::get('view', [LineFreeIssueController::class, 'view']);
+        Route::get('search', [LineFreeIssueController::class, 'search']);
+        Route::get('purchase-free-products', [LineFreeIssueController::class, 'purchase_free_products']);
+        Route::get('free-products', [LineFreeIssueController::class, 'free_products']);
+        Route::get('status', [LineFreeIssueController::class, 'status']);
+        Route::get('export', [LineFreeIssueController::class, 'export']);
+    });
+
+    // Adhoc Free Issue
+    Route::group(['prefix' => 'adhoc_free'], function () {
+        Route::get('load', [AdhocFreeIssueController::class, 'index'])->name('adhoc_free_issue');
+        Route::post('save', [AdhocFreeIssueController::class, 'save']);
+        Route::get('view', [AdhocFreeIssueController::class, 'view']);
+        Route::get('search', [AdhocFreeIssueController::class, 'search']);
+        Route::get('purchase-free-products', [AdhocFreeIssueController::class, 'purchase_free_products']);
+        Route::get('status', [AdhocFreeIssueController::class, 'status']);
+        Route::get('export', [AdhocFreeIssueController::class, 'export']);
+    });
+
+    // Assorted Free Issue
+    Route::group(['prefix' => 'assorted_free'], function () {
+        Route::get('load', [AssortedFreeIssueController::class, 'index'])->name('assorted_free_issue');
+        Route::post('save', [AssortedFreeIssueController::class, 'save']);
+        Route::get('view', [AssortedFreeIssueController::class, 'view']);
+        Route::get('search', [AssortedFreeIssueController::class, 'search']);
+        Route::get('purchase-free-products', [AssortedFreeIssueController::class, 'purchase_free_products']);
+        Route::get('status', [AssortedFreeIssueController::class, 'status']);
+        Route::get('export', [AssortedFreeIssueController::class, 'export']);
+    });
+
+    // Value Free Issue
+    Route::group(['prefix' => 'value_free'], function () {
+        Route::get('load', [ValueFreeIssueController::class, 'index'])->name('value_free_issue');
+        Route::post('save', [ValueFreeIssueController::class, 'save']);
+        Route::get('view', [ValueFreeIssueController::class, 'view']);
+        Route::get('search', [ValueFreeIssueController::class, 'search']);
+        Route::get('display/{id}', [ValueFreeIssueController::class, 'display']);
+        Route::get('status', [ValueFreeIssueController::class, 'status']);
+        Route::get('export', [ValueFreeIssueController::class, 'export']);
+    });
+
+    // Discount Flat
+    Route::group(['prefix' => 'discount_flat'], function () {
+        Route::get('load', [DiscountFlatContoller::class, 'index'])->name('discount_flat');
+        Route::post('save', [DiscountFlatContoller::class, 'save']);
+        Route::get('view', [DiscountFlatContoller::class, 'view']);
+        Route::get('search', [DiscountFlatContoller::class, 'search']);
+        Route::get('status', [DiscountFlatContoller::class, 'status']);
+        Route::get('export', [DiscountFlatContoller::class, 'export']);
+    });
+
+    // Discount Special
+    Route::group(['prefix' => 'discount'], function () {
+        Route::get('load', [DiscountController::class, 'index'])->name('discount');
+        Route::post('save', [DiscountController::class, 'save']);
+        Route::get('view', [DiscountController::class, 'view']);
+        Route::get('search', [DiscountController::class, 'search']);
+        Route::get('edit/{id}', [DiscountController::class, 'edit']);
+        Route::post('update/{id}', [DiscountController::class, 'update']);
+        Route::get('status', [DiscountController::class, 'status']);
+        Route::get('export', [DiscountController::class, 'export']);
+    });
+
+    // Discount Customer (In view use as Outlet)
+    Route::group(['prefix' => 'discount_customer'], function () {
+        Route::get('load', [DiscountCustomerController::class, 'index'])->name('discount_customer');
+        Route::post('save', [DiscountCustomerController::class, 'save']);
+        Route::get('view', [DiscountCustomerController::class, 'view']);
+        Route::get('search', [DiscountCustomerController::class, 'search']);
+        Route::get('status', [DiscountCustomerController::class, 'status']);
+        Route::get('export', [DiscountCustomerController::class, 'export']);
+        Route::post('sample_format', [DiscountCustomerController::class, 'sample_format']);
+        Route::get('export_outlets', [DiscountCustomerController::class, 'export_outlets']);
+    });
+
+    // Promotion Hierarchy
+    Route::group(['prefix' => 'free_issue_hierarchy'], function () {
+        Route::get('load', [FreeIssueHierarchyController::class, 'index'])->name('free_issue_hierarchy');
+        Route::post('free_issue_label', [FreeIssueHierarchyController::class, 'get_free_issue_label']);
+        Route::post('load_details', [FreeIssueHierarchyController::class, 'load_details']);
+        Route::post('download_csv', [FreeIssueHierarchyController::class, 'download_csv']);
+        Route::post('save', [FreeIssueHierarchyController::class, 'save']);
+        Route::get('view', [FreeIssueHierarchyController::class, 'view'])->name('free_issue_hierarchy_view');
+        Route::get('search', [FreeIssueHierarchyController::class, 'search']);
+        Route::get('edit/{id}', [FreeIssueHierarchyController::class, 'edit']);
+        Route::post('update/{id}', [FreeIssueHierarchyController::class, 'update']);
+        Route::get('common_label', [FreeIssueHierarchyController::class, 'common_label']);
+    });
+
+    // Promotion Priority
+    Route::group(['prefix' => 'promotion_priority'], function () {
+        Route::get('load', [PromotionPriorityController::class, 'index'])->name('promotion_priority');
+        Route::post('save', [PromotionPriorityController::class, 'save']);
+    });
+
+    // APK Upload
+    Route::group(['prefix' => 'apk'], function () {
+        Route::get('upload', [ApkUploadController::class, 'index'])->name('apk_upload');
+        Route::post('save', [ApkUploadController::class, 'save']);
+        Route::get('view', [ApkUploadController::class, 'view']);
+    });
+
+    // System Component
+    Route::group(['prefix' => 'system_components'], function () {
+        Route::get('load', [SystemComponentController::class, 'index']);
+        Route::post('save', [SystemComponentController::class, 'save']);
+        Route::get('view', [SystemComponentController::class, 'view'])->name('system_component');
+        Route::get('search', [SystemComponentController::class, 'search']);
+        Route::get('edit/{id}', [SystemComponentController::class, 'edit']);
+        Route::post('status', [SystemComponentController::class, 'change_status']);
+        Route::get('get_reasons', [SystemComponentController::class, 'get_reasons']);
+        Route::post('update/{id}', [SystemComponentController::class, 'update']);
+    });
+
+    // System Reason
+    Route::group(['prefix' => 'system_reasons'], function () {
+        Route::get('load', [SystemReasonsController::class, 'index']);
+        Route::post('save', [SystemReasonsController::class, 'save']);
+        Route::get('view', [SystemReasonsController::class, 'view'])->name('system_reason');
+        Route::get('search', [SystemReasonsController::class, 'search']);
+        Route::get('edit/{id}', [SystemReasonsController::class, 'edit']);
+        Route::post('status', [SystemReasonsController::class, 'change_status']);
+        Route::get('get_reasons', [SystemReasonsController::class, 'get_reasons']);
+        Route::post('update/{id}', [SystemReasonsController::class, 'update']);
+    });
+
+    // Bank Details
+    Route::group(['prefix' => 'bank_details'], function () {
+        Route::get('load', [BankController::class, 'index']);
+        Route::post('save', [BankController::class, 'save']);
+        Route::get('view', [BankController::class, 'view'])->name('bank');
+        Route::get('search', [BankController::class, 'search']);
+        Route::get('edit/{id}', [BankController::class, 'edit']);
+        Route::post('status', [BankController::class, 'change_status']);
+        Route::get('get_branches', [BankController::class, 'get_branches']);
+        Route::post('update/{id}', [BankController::class, 'update']);
+    });
+
+    // Payment Types
+    Route::group(['prefix' => 'payment_types'], function () {
+        Route::get('load', [PaymentTypeController::class, 'index']);
+        Route::post('save', [PaymentTypeController::class, 'save']);
+        Route::get('view', [PaymentTypeController::class, 'view'])->name('payment_type');
+        Route::get('search', [PaymentTypeController::class, 'search']);
+        Route::get('status', [PaymentTypeController::class, 'change_status']);
+        Route::get('edit/{id}', [PaymentTypeController::class, 'edit']);
+        Route::post('update/{id}', [PaymentTypeController::class, 'update']);
+    });
+
+    // Open stock
+    Route::group(['prefix' => 'open_stock'], function () {
+        Route::get('load', [OpenStockController::class, 'index'])->name('open_stock');
+        Route::get('product', [OpenStockController::class, 'load_products']);
+        Route::post('price', [OpenStockController::class, 'get_product_price']);
+        Route::post('save', [OpenStockController::class, 'save']);
+        Route::get('view', [OpenStockController::class, 'view'])->name('view_open_stock');
+        Route::get('search', [OpenStockController::class, 'search']);
+        Route::get('confirm/{id}', [OpenStockController::class, 'confirm'])->name('open_stock_confirm');
+        Route::post('confirm_action', [OpenStockController::class, 'confirm_action']);
+        Route::get('display/{id}', [OpenStockController::class, 'display'])->name('open_stock_display');
+        Route::post('ck_availability', [OpenStockController::class, 'ck_availability']);
+    });
+
+    // Purchase Order
+    Route::group(['prefix' => 'purchase_order'], function () {
+        Route::get('load', [PurchaseOrderController::class, 'index']);
+        Route::post('save', [PurchaseOrderController::class, 'save']);
+        Route::get('view', [PurchaseOrderController::class, 'view'])->name('purchase_orders');;
+        Route::get('search', [PurchaseOrderController::class, 'search']);
+        Route::post('autocomplete', [PurchaseOrderController::class, 'autocomplete']);
+        Route::get('display/{id}', [PurchaseOrderController::class, 'display'])->name('purchase_order_display');
+        Route::get('text_create/{id}', [PurchaseOrderController::class, 'text_create'])->name('purchase_order_text_create');
+        Route::post('text_create_action', [PurchaseOrderController::class, 'text_create_action']);
+        Route::get('text_view/{id}', [PurchaseOrderController::class, 'text_view'])->name('purchase_order_text_view');
+        Route::get('po_delete', [PurchaseOrderController::class, 'po_delete'])->name('po_delete');
+        Route::get('edit/{id}', [PurchaseOrderController::class, 'po_edit'])->name('po_edit');
+        Route::post('update/{po_id}', [PurchaseOrderController::class, 'update'])->name('po_update');
+        Route::get('export/{po_id}', [PurchaseOrderController::class, 'po_export'])->name('po_export');
+        Route::get('print/{po_id}', [PurchaseOrderController::class, 'print'])->name('po_print');
+        Route::post('status', [StockPurchaseOrderController::class, 'change_status']);
+        Route::get('load-po-in-po-view', [PurchaseOrderController::class, 'loadPoNumbers']);
+        Route::get('po-load-to-table', [PurchaseOrderController::class, 'po_load_to_table']);
+        Route::get('get-product-prices', [PurchaseOrderController::class, 'get_product_prices']);
+        Route::get('approve/{po_id}', [PurchaseOrderController::class, 'approve'])->name('po_approve');
+        Route::post('update_approve', [PurchaseOrderController::class, 'update_approve']);
+    });
+
+    // Sales Order
+    Route::group(['prefix' => 'sales_order'], function () {
+        Route::get('view', [SalesOrderController::class, 'index'])->name('view_sales_order');
+        Route::get('search', [SalesOrderController::class, 'search']);
+        Route::get('display/{id}', [SalesOrderController::class, 'display'])->name('sales_order_display');
+        Route::get('print/{id}', [SalesOrderController::class, 'print'])->name('sales_order_print');
+        Route::get('create_invoice/{id}', [SalesOrderController::class, 'create_invoice'])->name('sales_order_create_invoice');
+        Route::post('save_invoice', [SalesOrderController::class, 'save_invoice']);
+    });
+
+    // Invoice
+    Route::group(['prefix' => 'invoice'], function () {
+        Route::get('view', [InvoiceController::class, 'index'])->name('view_invoice');
+        Route::get('search', [InvoiceController::class, 'search']);
+        Route::get('display/{id}', [InvoiceController::class, 'display'])->name('invoice_display');
+        Route::get('print/{id}', [InvoiceController::class, 'print'])->name('invoice_print');
+
+        Route::get('delivery_return/{id}', [InvoiceController::class, 'delivery_return'])->name('invoice_delivery_return');
+    });
+
+    // Common search filters
+    Route::group(['prefix' => 'common'], function () {
+        Route::post('load_region', [CommonFunctionController::class, 'load_region']);
+        Route::post('load_area', [CommonFunctionController::class, 'load_area']);
+        Route::post('load_route', [CommonFunctionController::class, 'load_route']);
+        Route::post('load_customer', [CommonFunctionController::class, 'load_customer']);
+        Route::post('load_shop', [CommonFunctionController::class, 'load_shop']);
+        Route::post('load_distributor', [CommonFunctionController::class, 'load_distributor']);
+        Route::post('load_rep', [CommonFunctionController::class, 'load_rep']);
+        
+        Route::post('load_sub_categories', [CommonFunctionController::class, 'load_sub_categories']);
+        Route::post('load_product_masters', [CommonFunctionController::class, 'load_product_masters']);
+        Route::post('load_product_skus', [CommonFunctionController::class, 'load_product_skus']);
+        Route::post('load_product_posms', [CommonFunctionController::class, 'load_product_posms']);
+
+        Route::post('check_stock_availability', [CommonFunctionController::class, 'check_stock_availability']);
+        Route::post('check_free_issue_availability', [CommonFunctionController::class, 'check_free_issue_availability']);
+        Route::post('check_free_issue_is_valid_or_not', [CommonFunctionController::class, 'check_free_issue_is_valid_or_not']);
+        Route::post('handle_discount_flat', [CommonFunctionController::class, 'handleDiscountFlat']);
+        Route::post('check_assorted', [CommonFunctionController::class, 'check_assorted']);
+
+    });
+
+    // Unproductive
+    Route::group(['prefix' => 'unproductive'], function() {
+        Route::get('visit_report', [UnproductiveController::class, 'visit_report']);
+        Route::get('search', [UnproductiveController::class, 'search']);
+        Route::get('export', [UnproductiveController::class, 'export']);
+    });
+
+    //GpsMap
+    Route::group(['prefix' => 'gpsmap'], function() {
+        Route::get('view', [GpsMapController::class, 'view']);
+        Route::get('get_rep', [GpsMapController::class, 'get_rep']);
+        Route::get('sr_get_attendance', [GpsMapController::class, 'sr_get_attendance']);
+        Route::get('sr_routing_time', [GpsMapController::class, 'sr_routing_time']);
+        Route::post('gps_info', [GpsMapController::class, 'gps_info']);
+        Route::get('outlet_info', [GpsMapController::class, 'outlet_info']);
+        Route::get('invoice_call_orders', [GpsMapController::class, 'invoice_call_orders']);
+        Route::get('invoice_info', [GpsMapController::class, 'invoice_info']);
+        Route::get('sales_orders_info', [GpsMapController::class, 'sales_orders_info']);
+        Route::get('getAttendance', [GpsMapController::class, 'getAttendance']);
+        Route::get('unproductive_visits', [GpsMapController::class, 'unproductive_visits']);
+
+        Route::get('outlet', [GpsMapController::class, 'loadOutletMapView']);
+        Route::get('outlet/getOutlets', [GpsMapController::class, 'getOutlets']);
+        Route::get('outlet/getRegions', [GpsMapController::class, 'getRegions']);
+        Route::get('outlet/getTerritory', [GpsMapController::class, 'getTerritory']);
+        Route::get('outlet/getRoute', [GpsMapController::class, 'getRoute']);
+
+    });
+
+    //Competitor
+    Route::group(['prefix' => 'competitor'], function() {
+        Route::get('view', [CompetitorController::class, 'view'])->name('competitor_list');
+        Route::get('search', [CompetitorController::class, 'search']);
+        Route::get('get_products', [CompetitorController::class, 'get_products']);
+        Route::get('create', [CompetitorController::class, 'create'])->name('competitor_register');
+        Route::post('store', [CompetitorController::class, 'store']);
+        Route::get('edit/{id}', [CompetitorController::class, 'edit']);
+        Route::get('competitorProductCreate', [CompetitorController::class, 'competitorProductCreate'])->name('competitorProductCreate');
+        Route::post('competitorProductStore', [CompetitorController::class, 'competitorProductStore']);
+        Route::post('update/{id}', [CompetitorController::class, 'update']);
+
+    });
+
+    // Unplaned
+    Route::group(['prefix' => 'unplaned'], function() {
+        Route::get('view', [UnplanedVisitController::class, 'view'])->name('unplanned_view');
+        Route::get('edit/{id}', [UnplanedVisitController::class, 'edit'])->name('unplaned_edit');
+        Route::get('create', [UnplanedVisitController::class, 'create']);
+        Route::get('search', [UnplanedVisitController::class, 'search']);
+        Route::post('store', [UnplanedVisitController::class, 'store']);
+        Route::post('update', [UnplanedVisitController::class, 'update']);
+        Route::get('export', [UnplanedVisitController::class, 'export']);
+        Route::post('status', [UnplanedVisitController::class, 'change_status']);
+
+    });
+
+    // Expenses
+    Route::group(['prefix' => 'expense'], function() {
+        Route::get('view', [ExpenseController::class, 'view'])->name('expense_view');
+        Route::get('create', [ExpenseController::class, 'create'])->name('expense_create');
+        Route::post('store', [ExpenseController::class, 'store']);
+        Route::get('search', [ExpenseController::class, 'search']);
+        Route::get('edit/{id}', [ExpenseController::class, 'edit'])->name('expense_edit');
+        Route::post('update/{id}', [ExpenseController::class, 'update']);
+        Route::post('check_expensetype', [ExpenseController::class, 'check_expensetype']);
+    });
+
+    // Message
+    Route::group(['prefix' => 'message'], function() {
+        Route::get('view', [MessageController::class, 'view'])->name('message_view');
+        Route::get('create', [MessageController::class, 'create'])->name('message_create');
+    });
+
+    // VAT
+    Route::group(['prefix' => 'vat'], function() {
+        Route::get('view', [VatController::class, 'view'])->name('vat_view');
+        Route::get('create', [VatController::class, 'create'])->name('vat_create');
+        Route::post('check_vat_amount', [VatController::class, 'check_vat_amount']);
+        Route::post('store', [VatController::class, 'store']);
+        Route::get('search', [VatController::class, 'search']);
+        Route::get('edit/{id}', [VatController::class, 'edit']);
+        Route::post('update/{id}', [VatController::class, 'update']);
+        Route::post('status', [VatController::class, 'change_status']);
+    });
+
+    // REF_ATTENDANCE
+    Route::group(['prefix' => 'attendance'], function() {
+        Route::get('view', [RepAttendanceController::class, 'view']);
+        Route::post('load_rep_attendance_table', [RepAttendanceController::class, 'load_rep_attendance_table']);
+        // Route::get('load_rep_attendance_table', [RepAttendanceController::class, 'load_rep_attendance_table']);
+        Route::get('rep_attendance_excel', [RepAttendanceController::class, 'rep_attendance_excel']);
+    });
+
+    // DISTRIBUTOR
+        Route::group(['prefix' => 'distributor'], function () {
+        Route::get('view', [DistributorController::class, 'view'])->name('distributor_view');
+        Route::get('search', [DistributorController::class, 'search']);
+        Route::get('export', [DistributorController::class, 'export']);
+    });
+
+    // SALES REP
+    Route::group(['prefix' => 'salesref'], function () {
+        Route::get('view', [SalesRepController::class, 'view'])->name('sale_ref_view');
+        Route::get('search', [SalesRepController::class, 'search']);
+        Route::get('export', [SalesRepController::class, 'export']);
+    });
+
+    // ITEM REPORT
+    Route::group(['prefix' => 'item'], function () {
+        Route::get('view', [ItemController::class, 'view'])->name('item_view');
+        Route::get('search', [ItemController::class, 'search']);
+        Route::get('export', [ItemController::class, 'export']);
+    });
+
+     // REGION WISE CATEGORY REPORT
+     Route::group(['prefix' => 'shop'], function () {
+        Route::get('view', [ShopReportController::class, 'view'])->name('shop_view');
+        Route::get('search', [ShopReportController::class, 'search']);
+        Route::get('export', [ShopReportController::class, 'export']);
+    });
+
+     // AREA WISE CATEGORY REPORT
+     Route::group(['prefix' => 'area_shop'], function () {
+        Route::get('view', [AreaWiseShopController::class, 'view'])->name('area_shop_view');
+        Route::post('load_area_wise_table', [AreaWiseShopController::class, 'load_area_wise_table']);
+        // Route::get('search', [AreaWiseShopController::class, 'search']);
+        Route::get('export', [AreaWiseShopController::class, 'export']);
+    });
+
+     // ROUTE WISE CATEGORY REPORT
+     Route::group(['prefix' => 'route_shop'], function () {
+        Route::get('view', [RouteWiseShopController::class, 'view'])->name('route_shop_view');
+        Route::post('load_route_wise_table', [RouteWiseShopController::class, 'load_route_wise_table']);
+        // Route::get('search', [RouteWiseShopController::class, 'search']);
+        Route::get('export', [RouteWiseShopController::class, 'export']);
+    });
+
+    /**
+     * * Test runs only
+     */
+    Route::group(['prefix' => 'test'], function () {
+
+        Route::group(['prefix' => 'import'], function () {
+            Route::get('customer/load', [ImportController::class, 'customer_load']);
+            Route::get('customer/download_format', [ImportController::class, 'customer_download_format']);
+            Route::post('customer/upload', [ImportController::class, 'customer_upload']);
+        });
+
+    });
+
+});
 
 
